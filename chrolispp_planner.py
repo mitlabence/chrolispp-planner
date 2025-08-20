@@ -31,7 +31,7 @@ POWER_LABEL = "Power (0-1000=0-100.0%)"
 class CSVApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("CSV Line Generator")
+        self.root.title("Chrolispp Planner")
 
         # Input fields
         self.entries = {}
