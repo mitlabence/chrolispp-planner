@@ -100,7 +100,7 @@ class CSVApp:
         if led_index < 1 or led_index > 6:
             raise LEDIndexError(f"Invalid LED index: {led_index}.")
         led_index -= 1  # convert to 0-5
-        freq = float(self.entries[FREQUENCY_LABEL].get())
+        freq = None if self.entries[FREQUENCY_LABEL].get() == "" else float(self.entries[FREQUENCY_LABEL].get())
         total = float(self.entries[TOTAL_DURATION_LABEL].get())
         pulse_duration_ms = int(self.entries[PULSE_DURATION_LABEL].get())
         power = int(self.entries[POWER_LABEL].get())
@@ -110,9 +110,14 @@ class CSVApp:
         if power == 0:
             line = f"{led_index},0,{total_duration_ms},1,0"
             return line
+        # detect single pulse command (frequency is 0 or not provided). Then use peak duration and total duration to calculate break (n_peaks = 1)
+        if freq is None or freq == 0:  # single pulse
+            break_duration_ms = total_duration_ms - pulse_duration_ms
+            return f"{led_index},{pulse_duration_ms},{break_duration_ms},1,{power}"
+
+        cycle_duration_ms = int(floor(1000.0 / freq))  # in milliseconds
         # check pulse duration is not too short or too long
         #   too short when < 1 ms (0 ms)
-        cycle_duration_ms = int(floor(1000.0 / freq))  # in milliseconds
         if pulse_duration_ms < 1 or pulse_duration_ms > cycle_duration_ms:
             raise InvalidParameterError(
                 f"Pulse duration invalid: should be 0 < {pulse_duration_ms} <= {cycle_duration_ms} ms"
@@ -121,10 +126,8 @@ class CSVApp:
             raise InvalidParameterError(
                 f"Power invalid: should be 0 <= {power} <= 1000"
             )
-        if freq == 0:
-            raise InvalidParameterError(
-                f"Frequency invalid: 0 Hz for non-break (power != 0) segment."
-            )
+
+            
         # Calculate parameters
         break_duration_ms = cycle_duration_ms - pulse_duration_ms
         assert break_duration_ms >= 0
